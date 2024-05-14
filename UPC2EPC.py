@@ -62,13 +62,10 @@ def generate_file():
         return
 
     num_serials = end_serial - start_serial + 1
-    file_name = f"{upc}_{num_serials}.xlsx"
+    file_name = f"{upc}.DB1.1-{num_serials}K.xlsx"
     file_path = os.path.join(save_location, file_name)
 
     try:
-        # Load the baseline conversion file
-        df = pd.read_excel('UPC2EPC.xlsx', sheet_name='Sheet1')
-        
         # Create new data for the specified range
         serial_numbers = list(range(start_serial, end_serial + 1))
         epc_values = [generate_epc(upc, sn) for sn in serial_numbers]
@@ -81,7 +78,11 @@ def generate_file():
         })
 
         # Save the updated file
-        df.to_excel(file_path, index=False)
+        with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Sheet1')
+            worksheet = writer.sheets['Sheet1']
+            worksheet.column_dimensions['C'].width = 40  # Adjust the width of the EPC column
+
         messagebox.showinfo("Success", f"File saved successfully: {file_path}")
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred: {str(e)}")

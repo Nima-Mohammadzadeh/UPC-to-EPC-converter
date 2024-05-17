@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 import pandas as pd
 import openpyxl
 import os
@@ -54,8 +54,8 @@ def open_roll_tracker(upc, start_serial, end_serial, lpr, total_qty, qty_db):
 def generate_file():
     upc = upc_entry.get().strip()
     start_serial = serial_start_entry.get().strip()
-    lpr = lpr_entry.get().strip()
     total_qty = total_qty_entry.get().strip()
+    lpr = lpr_entry.get().strip()
     qty_db = qty_db_entry.get().strip()
     save_location = save_location_entry.get().strip()
 
@@ -65,19 +65,19 @@ def generate_file():
 
     try:
         start_serial = int(start_serial)
-        lpr = int(lpr)
         total_qty = int(total_qty)
+        lpr = int(lpr)
         qty_db = int(qty_db)
     except ValueError:
         messagebox.showerror("Input Error", "Serial numbers and quantities must be integers.")
         return
 
     end_serial = start_serial + total_qty - 1
-
     num_serials = end_serial - start_serial + 1
     num_dbs = math.ceil(num_serials / qty_db)
     
     try:
+        progress_bar['maximum'] = num_dbs
         for db_index in range(num_dbs):
             chunk_start = start_serial + db_index * qty_db
             chunk_end = min(chunk_start + qty_db - 1, end_serial)
@@ -90,8 +90,8 @@ def generate_file():
                 'EPC': epc_values
             })
 
-            start_range = (chunk_start) // 1000
-            end_range = (chunk_end + 1) // 1000
+            start_range = (chunk_start // 1000) + 1 if chunk_start % 1000 == 0 else (chunk_start // 1000)
+            end_range = ((chunk_end + 1) // 1000)
             file_name = f"{upc}.DB{db_index + 1}.{start_range}K-{end_range}K.xlsx"
             file_path = os.path.join(save_location, file_name)
             with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
@@ -99,10 +99,66 @@ def generate_file():
                 worksheet = writer.sheets['Sheet1']
                 worksheet.column_dimensions['C'].width = 40
 
+            progress_bar['value'] = db_index + 1
+            root.update_idletasks()
+
         open_roll_tracker(upc, start_serial, end_serial, lpr, total_qty, qty_db)
         messagebox.showinfo("Success", f"Files saved successfully in: {save_location}")
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
+
+def preview_file():
+    upc = upc_entry.get().strip()
+    start_serial = serial_start_entry.get().strip()
+    total_qty = total_qty_entry.get().strip()
+    lpr = lpr_entry.get().strip()
+    qty_db = qty_db_entry.get().strip()
+
+    if not upc or not start_serial or not lpr or not total_qty or not qty_db:
+        messagebox.showerror("Input Error", "All fields are required.")
+        return
+
+    try:
+        start_serial = int(start_serial)
+        total_qty = int(total_qty)
+        lpr = int(lpr)
+        qty_db = int(qty_db)
+    except ValueError:
+        messagebox.showerror("Input Error", "Serial numbers and quantities must be integers.")
+        return
+
+    end_serial = start_serial + total_qty - 1
+    chunk_serial_numbers = list(range(start_serial, min(start_serial + 10, end_serial + 1)))
+    epc_values = [generate_epc(upc, sn) for sn in chunk_serial_numbers]
+
+    df = pd.DataFrame({
+        'UPC': [upc] * len(chunk_serial_numbers),
+        'Serial #': chunk_serial_numbers,
+        'EPC': epc_values
+    })
+
+    preview_window = tk.Toplevel(root)
+    preview_window.title("Preview Data")
+    preview_window.geometry("500x300")
+
+    preview_table = ttk.Treeview(preview_window, columns=("UPC", "Serial #", "EPC"), show="headings")
+    preview_table.heading("UPC", text="UPC")
+    preview_table.heading("Serial #", text="Serial #")
+    preview_table.heading("EPC", text="EPC")
+
+    for index, row in df.iterrows():
+        preview_table.insert("", "end", values=(row["UPC"], row["Serial #"], row["EPC"]))
+
+    preview_table.pack(expand=True, fill="both")
+
+def clear_fields():
+    upc_entry.delete(0, tk.END)
+    serial_start_entry.delete(0, tk.END)
+    lpr_entry.delete(0, tk.END)
+    total_qty_entry.delete(0, tk.END)
+    qty_db_entry.delete(0, tk.END)
+    save_location_entry.delete(0, tk.END)
+    progress_bar['value'] = 0
 
 root = tk.Tk()
 root.title("UPC to EPC Conversion")
@@ -111,31 +167,51 @@ root.iconphoto(False, tk.PhotoImage(file=icon_path))
 font_style = ("Helvetica", 12)
 padding = {'padx': 10, 'pady': 10}
 
-tk.Label(root, text="UPC:", font=font_style).grid(row=0, column=0, **padding)
-upc_entry = tk.Entry(root, font=font_style)
+header_frame = tk.Frame(root, bg="#004B87")
+header_frame.grid(row=0, column=0, columnspan=3, sticky="ew")
+
+tk.Label(header_frame, text="UPC to EPC Conversion", font=("Helvetica", 16, "bold"), bg="#004B87", fg="white").pack(pady=10)
+
+input_frame = tk.Frame(root)
+input_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=10)
+
+tk.Label(input_frame, text="UPC:", font=font_style).grid(row=0, column=0, sticky="e", **padding)
+upc_entry = tk.Entry(input_frame, font=font_style)
 upc_entry.grid(row=0, column=1, **padding)
 
-tk.Label(root, text="Starting Serial #:", font=font_style).grid(row=1, column=0, **padding)
-serial_start_entry = tk.Entry(root, font=font_style)
+tk.Label(input_frame, text="Starting Serial #:", font=font_style).grid(row=1, column=0, sticky="e", **padding)
+serial_start_entry = tk.Entry(input_frame, font=font_style)
 serial_start_entry.grid(row=1, column=1, **padding)
 
-tk.Label(root, text="Labels per Roll (LPR):", font=font_style).grid(row=2, column=0, **padding)
-lpr_entry = tk.Entry(root, font=font_style)
+tk.Label(input_frame, text="Labels per Roll (LPR):", font=font_style).grid(row=2, column=0, sticky="e", **padding)
+lpr_entry = tk.Entry(input_frame, font=font_style)
 lpr_entry.grid(row=2, column=1, **padding)
 
-tk.Label(root, text="Total Quantity:", font=font_style).grid(row=3, column=0, **padding)
-total_qty_entry = tk.Entry(root, font=font_style)
+tk.Label(input_frame, text="Total Quantity:", font=font_style).grid(row=3, column=0, sticky="e", **padding)
+total_qty_entry = tk.Entry(input_frame, font=font_style)
 total_qty_entry.grid(row=3, column=1, **padding)
 
-tk.Label(root, text="Qty/DB:", font=font_style).grid(row=4, column=0, **padding)
-qty_db_entry = tk.Entry(root, font=font_style)
+tk.Label(input_frame, text="Qty/DB:", font=font_style).grid(row=4, column=0, sticky="e", **padding)
+qty_db_entry = tk.Entry(input_frame, font=font_style)
 qty_db_entry.grid(row=4, column=1, **padding)
 
-tk.Label(root, text="Save Location:", font=font_style).grid(row=5, column=0, **padding)
-save_location_entry = tk.Entry(root, font=font_style, width=40)
+tk.Label(input_frame, text="Save Location:", font=font_style).grid(row=5, column=0, sticky="e", **padding)
+save_location_entry = tk.Entry(input_frame, font=font_style, width=40)
 save_location_entry.grid(row=5, column=1, **padding)
-tk.Button(root, text="Browse...", command=select_save_location, font=font_style).grid(row=5, column=2, **padding)
+tk.Button(input_frame, text="Browse...", command=select_save_location, font=font_style, bg="#004B87", fg="white").grid(row=5, column=2, **padding)
 
-tk.Button(root, text="Generate File", command=generate_file, font=font_style, bg="#4CAF50", fg="white").grid(row=6, column=0, columnspan=3, pady=20)
+button_frame = tk.Frame(root)
+button_frame.grid(row=6, column=0, columnspan=3, pady=20)
+
+tk.Button(button_frame, text="Generate File", command=generate_file, font=font_style, bg="#4CAF50", fg="white").grid(row=0, column=0, padx=10)
+tk.Button(button_frame, text="Clear", command=clear_fields, font=font_style, bg="#E60000", fg="white").grid(row=0, column=1, padx=10)
+tk.Button(button_frame, text="Preview", command=preview_file, font=font_style, bg="#FFC107", fg="black").grid(row=0, column=2, padx=10)
+
+progress_bar = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate")
+progress_bar.grid(row=7, column=0, columnspan=3, pady=10)
+
+footer_frame = tk.Frame(root, bg="#004B87")
+footer_frame.grid(row=8, column=0, columnspan=3, sticky="ew")
+tk.Label(footer_frame, text="Starport Technologies - Converting RFID into the Future", font=("Helvetica", 10), bg="#004B87", fg="white").pack(pady=10)
 
 root.mainloop()

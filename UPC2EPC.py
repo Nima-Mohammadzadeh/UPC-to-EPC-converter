@@ -51,6 +51,12 @@ def open_roll_tracker(upc, start_serial, end_serial, lpr, total_qty, qty_db):
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
+def validate_upc(upc):
+    if len(upc) != 12 or not upc.isdigit():
+        messagebox.showerror("Input Error", "UPC must be exactly 12 digits.")
+        return False
+    return True
+
 def generate_file():
     upc = upc_entry.get().strip()
     start_serial = serial_start_entry.get().strip()
@@ -61,6 +67,9 @@ def generate_file():
 
     if not upc or not start_serial or not lpr or not total_qty or not qty_db or not save_location:
         messagebox.showerror("Input Error", "All fields are required.")
+        return
+
+    if not validate_upc(upc):
         return
 
     try:
@@ -118,6 +127,9 @@ def preview_file():
         messagebox.showerror("Input Error", "All fields are required.")
         return
 
+    if not validate_upc(upc):
+        return
+
     try:
         start_serial = int(start_serial)
         total_qty = int(total_qty)
@@ -139,7 +151,7 @@ def preview_file():
 
     preview_window = tk.Toplevel(root)
     preview_window.title("Preview Data")
-    preview_window.geometry("500x300")
+    preview_window.geometry("600x400")
 
     preview_table = ttk.Treeview(preview_window, columns=("UPC", "Serial #", "EPC"), show="headings")
     preview_table.heading("UPC", text="UPC")
@@ -177,27 +189,28 @@ input_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=10)
 
 tk.Label(input_frame, text="UPC:", font=font_style).grid(row=0, column=0, sticky="e", **padding)
 upc_entry = tk.Entry(input_frame, font=font_style)
-upc_entry.grid(row=0, column=1, **padding)
+upc_entry.grid(row=0, column=1, sticky="ew", **padding)
+input_frame.columnconfigure(1, weight=1)
 
 tk.Label(input_frame, text="Starting Serial #:", font=font_style).grid(row=1, column=0, sticky="e", **padding)
 serial_start_entry = tk.Entry(input_frame, font=font_style)
-serial_start_entry.grid(row=1, column=1, **padding)
+serial_start_entry.grid(row=1, column=1, sticky="ew", **padding)
 
 tk.Label(input_frame, text="Labels per Roll (LPR):", font=font_style).grid(row=2, column=0, sticky="e", **padding)
 lpr_entry = tk.Entry(input_frame, font=font_style)
-lpr_entry.grid(row=2, column=1, **padding)
+lpr_entry.grid(row=2, column=1, sticky="ew", **padding)
 
 tk.Label(input_frame, text="Total Quantity:", font=font_style).grid(row=3, column=0, sticky="e", **padding)
 total_qty_entry = tk.Entry(input_frame, font=font_style)
-total_qty_entry.grid(row=3, column=1, **padding)
+total_qty_entry.grid(row=3, column=1, sticky="ew", **padding)
 
 tk.Label(input_frame, text="Qty/DB:", font=font_style).grid(row=4, column=0, sticky="e", **padding)
 qty_db_entry = tk.Entry(input_frame, font=font_style)
-qty_db_entry.grid(row=4, column=1, **padding)
+qty_db_entry.grid(row=4, column=1, sticky="ew", **padding)
 
 tk.Label(input_frame, text="Save Location:", font=font_style).grid(row=5, column=0, sticky="e", **padding)
-save_location_entry = tk.Entry(input_frame, font=font_style, width=40)
-save_location_entry.grid(row=5, column=1, **padding)
+save_location_entry = tk.Entry(input_frame, font=font_style)
+save_location_entry.grid(row=5, column=1, sticky="ew", **padding)
 tk.Button(input_frame, text="Browse...", command=select_save_location, font=font_style, bg="#004B87", fg="white").grid(row=5, column=2, **padding)
 
 button_frame = tk.Frame(root)
@@ -208,10 +221,11 @@ tk.Button(button_frame, text="Clear", command=clear_fields, font=font_style, bg=
 tk.Button(button_frame, text="Preview", command=preview_file, font=font_style, bg="#FFC107", fg="black").grid(row=0, column=2, padx=10)
 
 progress_bar = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate")
-progress_bar.grid(row=7, column=0, columnspan=3, pady=10)
+progress_bar.grid(row=7, column=0, columnspan=3, pady=10, sticky="ew")
 
 footer_frame = tk.Frame(root, bg="#004B87")
 footer_frame.grid(row=8, column=0, columnspan=3, sticky="ew")
 tk.Label(footer_frame, text="Starport Technologies - Converting RFID into the Future", font=("Helvetica", 10), bg="#004B87", fg="white").pack(pady=10)
 
+root.columnconfigure(1, weight=1)
 root.mainloop()

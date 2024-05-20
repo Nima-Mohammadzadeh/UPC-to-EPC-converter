@@ -4,6 +4,10 @@ import pandas as pd
 import openpyxl
 import os
 import math
+import webbrowser
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 
 def select_save_location():
     folder_selected = filedialog.askdirectory()
@@ -45,6 +49,8 @@ def open_roll_tracker(upc, start_serial, end_serial, lpr, total_qty, qty_db):
         input_sheet['D5'] = start_serial
         input_sheet['D8'] = end_serial
         input_sheet['D10'] = qty_db
+        hex_sheet = wb['HEX']
+        wb.active = wb.index(hex_sheet)
         temp_path = os.path.join(os.path.dirname(__file__), 'temp_Roll_Tracker.xlsx')
         wb.save(temp_path)
         os.startfile(temp_path)
@@ -52,7 +58,7 @@ def open_roll_tracker(upc, start_serial, end_serial, lpr, total_qty, qty_db):
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
 def validate_upc(upc):
-    if len(upc) != 12 or not upc.isdigit():
+    if (len(upc) != 12) or (not upc.isdigit()):
         messagebox.showerror("Input Error", "UPC must be exactly 12 digits.")
         return False
     return True
@@ -163,6 +169,45 @@ def preview_file():
 
     preview_table.pack(expand=True, fill="both")
 
+def verify_epc():
+    upc = upc_entry.get().strip()
+    start_serial = serial_start_entry.get().strip()
+
+    if not upc or not start_serial:
+        messagebox.showerror("Input Error", "UPC and Starting Serial # are required for verification.")
+        return
+
+    if not validate_upc(upc):
+        return
+
+    try:
+        start_serial = int(start_serial)
+    except ValueError:
+        messagebox.showerror("Input Error", "Serial numbers must be integers.")
+        return
+
+    epc = generate_epc(upc, start_serial)
+    epc_url = "https://www.gs1.org/services/epc-encoderdecoder"
+
+    try:
+        # Initialize the WebDriver (assuming ChromeDriver is in your PATH)
+        driver = webdriver.Chrome()
+        driver.get(epc_url)
+
+        # Wait for the page to load
+        driver.implicitly_wait(10)
+
+        # Locate the input field by its identifier and fill in the EPC value
+        epc_input_field = driver.find_element(By.XPATH, '//*[@id="epcContainer"]/table/tbody/tr/td/div/div[5]/input')
+        epc_input_field.send_keys(epc)
+
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred while verifying the EPC: {str(e)}")
+    finally:
+        # Optionally, close the WebDriver after some time or leave it open for manual interaction
+        # driver.quit()
+        pass
+
 def clear_fields():
     upc_entry.delete(0, tk.END)
     serial_start_entry.delete(0, tk.END)
@@ -173,7 +218,7 @@ def clear_fields():
     progress_bar['value'] = 0
 
 root = tk.Tk()
-root.title("UPC to EPC Conversion")
+root.title("Database Generator")
 icon_path = "C:\\Users\\Jason\\OneDrive\\Documents\\UPC2EPC Convertor\\download.png"
 root.iconphoto(False, tk.PhotoImage(file=icon_path))
 font_style = ("Helvetica", 12)
@@ -182,7 +227,7 @@ padding = {'padx': 10, 'pady': 10}
 header_frame = tk.Frame(root, bg="#004B87")
 header_frame.grid(row=0, column=0, columnspan=3, sticky="ew")
 
-tk.Label(header_frame, text="UPC to EPC Conversion", font=("Helvetica", 16, "bold"), bg="#004B87", fg="white").pack(pady=10)
+tk.Label(header_frame, text="Database Generator", font=("Helvetica", 16, "bold"), bg="#004B87", fg="white").pack(pady=10)
 
 input_frame = tk.Frame(root)
 input_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=10)
@@ -219,6 +264,7 @@ button_frame.grid(row=6, column=0, columnspan=3, pady=20)
 tk.Button(button_frame, text="Generate File", command=generate_file, font=font_style, bg="#4CAF50", fg="white").grid(row=0, column=0, padx=10)
 tk.Button(button_frame, text="Clear", command=clear_fields, font=font_style, bg="#E60000", fg="white").grid(row=0, column=1, padx=10)
 tk.Button(button_frame, text="Preview", command=preview_file, font=font_style, bg="#FFC107", fg="black").grid(row=0, column=2, padx=10)
+tk.Button(button_frame, text="Verify", command=verify_epc, font=font_style, bg="#2196F3", fg="white").grid(row=0, column=3, padx=10)
 
 progress_bar = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate")
 progress_bar.grid(row=7, column=0, columnspan=3, pady=10, sticky="ew")

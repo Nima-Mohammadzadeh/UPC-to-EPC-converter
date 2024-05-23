@@ -8,6 +8,17 @@ import webbrowser
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+import sys
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 def select_save_location():
     folder_selected = filedialog.askdirectory()
@@ -38,7 +49,7 @@ def generate_epc(upc, serial_number):
 
 def open_roll_tracker(upc, start_serial, end_serial, lpr, total_qty, qty_db):
     try:
-        roll_tracker_path = os.path.join("C:\\Users\\Jason\\OneDrive\\Documents\\UPC2EPC Convertor", 'Roll Tracker v.3.xlsx')
+        roll_tracker_path = os.path.join(os.path.dirname(__file__), 'Roll Tracker v.3.xlsx')
         if not os.path.exists(roll_tracker_path):
             messagebox.showerror("File Error", f"Roll Tracker file not found at: {roll_tracker_path}")
             return
@@ -219,8 +230,11 @@ def clear_fields():
 
 root = tk.Tk()
 root.title("Database Generator")
-icon_path = "C:\\Users\\Jason\\OneDrive\\Documents\\UPC2EPC Convertor\\download.png"
+
+# Set icon path relative to script location
+icon_path = resource_path('download.png')
 root.iconphoto(False, tk.PhotoImage(file=icon_path))
+
 font_style = ("Helvetica", 12)
 padding = {'padx': 10, 'pady': 10}
 

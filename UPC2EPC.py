@@ -8,6 +8,8 @@ import webbrowser
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import sys
 
 def resource_path(relative_path):
@@ -47,7 +49,7 @@ def generate_epc(upc, serial_number):
     epc_hex = bin_to_hex(epc_binary)
     return epc_hex
 
-def open_roll_tracker(upc, start_serial, end_serial, lpr, total_qty, qty_db):
+def open_roll_tracker(upc, start_serial, end_serial, lpr, total_qty, qty_db, first_epc):
     try:
         roll_tracker_path = os.path.join(os.path.dirname(__file__), 'Roll Tracker v.3.xlsx')
         if not os.path.exists(roll_tracker_path):
@@ -58,9 +60,11 @@ def open_roll_tracker(upc, start_serial, end_serial, lpr, total_qty, qty_db):
         input_sheet['D3'] = lpr
         input_sheet['D4'] = total_qty
         input_sheet['D5'] = start_serial
+        input_sheet['D6'] = first_epc  # Fill D6 with the first EPC
         input_sheet['D8'] = end_serial
         input_sheet['D10'] = qty_db
         hex_sheet = wb['HEX']
+        hex_sheet['J1'] = first_epc  # Fill J1 with the first EPC in HEX sheet
         wb.active = wb.index(hex_sheet)
         temp_path = os.path.join(os.path.dirname(__file__), 'temp_Roll_Tracker.xlsx')
         wb.save(temp_path)
@@ -104,11 +108,15 @@ def generate_file():
     
     try:
         progress_bar['maximum'] = num_dbs
+        first_epc = None  # Variable to store the first EPC value
         for db_index in range(num_dbs):
             chunk_start = start_serial + db_index * qty_db
             chunk_end = min(chunk_start + qty_db - 1, end_serial)
             chunk_serial_numbers = list(range(chunk_start, chunk_end + 1))
             epc_values = [generate_epc(upc, sn) for sn in chunk_serial_numbers]
+
+            if first_epc is None:
+                first_epc = epc_values[0]  # Capture the first EPC value
 
             df = pd.DataFrame({
                 'UPC': [upc] * len(chunk_serial_numbers),
@@ -128,7 +136,7 @@ def generate_file():
             progress_bar['value'] = db_index + 1
             root.update_idletasks()
 
-        open_roll_tracker(upc, start_serial, end_serial, lpr, total_qty, qty_db)
+        open_roll_tracker(upc, start_serial, end_serial, lpr, total_qty, qty_db, first_epc)
         messagebox.showinfo("Success", f"Files saved successfully in: {save_location}")
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
@@ -181,6 +189,9 @@ def preview_file():
     preview_table.pack(expand=True, fill="both")
 
 def verify_epc():
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    
     upc = upc_entry.get().strip()
     start_serial = serial_start_entry.get().strip()
 
@@ -205,11 +216,22 @@ def verify_epc():
         driver = webdriver.Chrome()
         driver.get(epc_url)
 
-        # Wait for the page to load
-        driver.implicitly_wait(10)
+        # Wait for the page to load and the cookie popup to appear
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="onetrust-accept-btn-handler"]')))
 
-        # Locate the input field by its identifier and fill in the EPC value
-        epc_input_field = driver.find_element(By.XPATH, '//*[@id="epcContainer"]/table/tbody/tr/td/div/div[5]/input')
+        # Handle the cookie consent popup
+        try:
+            accept_cookies_button = driver.find_element(By.XPATH, '//*[@id="onetrust-accept-btn-handler"]')
+            accept_cookies_button.click()
+        except Exception as e:
+            print("No cookie consent popup or unable to find the button:", str(e))
+
+        # Wait for the EPC input field to be visible
+        epc_input_field = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, '//*[@id="epcContainer"]/table/tbody/tr/td/div/div[5]/input'))
+        )
+
+        # Locate the input field and fill in the EPC value
         epc_input_field.send_keys(epc)
 
     except Exception as e:
@@ -218,6 +240,8 @@ def verify_epc():
         # Optionally, close the WebDriver after some time or leave it open for manual interaction
         # driver.quit()
         pass
+
+
 
 def clear_fields():
     upc_entry.delete(0, tk.END)

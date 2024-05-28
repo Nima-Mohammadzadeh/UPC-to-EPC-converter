@@ -9,6 +9,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import sys
+import datetime
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -17,7 +18,6 @@ def resource_path(relative_path):
         base_path = sys._MEIPASS
     except Exception:
         base_path = os.path.abspath(".")
-
     return os.path.join(base_path, relative_path)
 
 def select_save_location():
@@ -220,72 +220,198 @@ def verify_epc():
         pass
 
 def clear_fields():
-    upc_entry.delete(0, tk.END)
-    serial_start_entry.delete(0, tk.END)
-    lpr_entry.delete(0, tk.END)
-    total_qty_entry.delete(0, tk.END)
-    qty_db_entry.delete(0, tk.END)
-    save_location_entry.delete(0, tk.END)
-    progress_bar['value'] = 0
+    customer_menu.set('')
+    label_size_menu.set('')
+    job_qty_entry.delete(0, tk.END)
+    ticket_number_entry.delete(0, tk.END)
+    po_number_entry.delete(0, tk.END)
+    upc_entry_job.delete(0, tk.END)
+
+def populate_customer_dropdown():
+    customer_dir = r'Z:\3 Encoding and Printing Files\Customers Encoding Files'
+    if os.path.exists(customer_dir):
+        customers = os.listdir(customer_dir)
+        customers = [customer for customer in customers if os.path.isdir(os.path.join(customer_dir, customer))]
+        customer_var.set(customers[0] if customers else '')
+        customer_menu['values'] = customers
+        update_label_size_dropdown(customers[0])
+    else:
+        messagebox.showerror("Directory Error", f"Customer directory not found: {customer_dir}")
+
+def update_label_size_dropdown(customer):
+    label_size_dir = os.path.join(r'Z:\3 Encoding and Printing Files\Customers Encoding Files', customer)
+    if os.path.exists(label_size_dir):
+        label_sizes = os.listdir(label_size_dir)
+        label_sizes = [size for size in label_sizes if os.path.isdir(os.path.join(label_size_dir, size))]
+        label_size_var.set(label_sizes[0] if label_sizes else '')
+        label_size_menu['values'] = label_sizes
+    else:
+        messagebox.showerror("Directory Error", f"Label size directory not found for customer: {customer}")
+
+def on_customer_select(event):
+    selected_customer = customer_var.get()
+    update_label_size_dropdown(selected_customer)
+
+def create_job_folder():
+    customer = customer_var.get().strip()
+    label_size = label_size_var.get().strip()
+    ticket_number = ticket_number_entry.get().strip()
+    po_number = po_number_entry.get().strip()
+    upc = upc_entry_job.get().strip()
+
+    if not customer or not label_size or not ticket_number or not po_number or not upc:
+        messagebox.showerror("Input Error", "All fields are required.")
+        return
+
+    today_date = datetime.datetime.now().strftime("%m.%d.%y")
+    folder_name = f"{today_date} - {po_number} - {ticket_number}"
+    folder_path = os.path.join(r'Z:\3 Encoding and Printing Files\Customers Encoding Files', customer, label_size, folder_name)
+    upc_folder_path = os.path.join(folder_path, upc)
+
+    try:
+        os.makedirs(upc_folder_path, exist_ok=True)
+        os.makedirs(os.path.join(upc_folder_path, "print"), exist_ok=True)
+        os.makedirs(os.path.join(upc_folder_path, "data"), exist_ok=True)
+        messagebox.showinfo("Success", f"Folder created successfully at: {upc_folder_path}")
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred: {str(e)}")
+
+
+def create_database_generator_tab(tab):
+    header_frame = tk.Frame(tab, bg="#004B87")
+    header_frame.grid(row=0, column=0, columnspan=3, sticky="ew")
+
+    tk.Label(header_frame, text="Database Generator", font=("Helvetica", 16, "bold"), bg="#004B87", fg="white").pack(pady=10)
+
+    input_frame = tk.Frame(tab)
+    input_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=10)
+
+    tk.Label(input_frame, text="UPC:", font=("Helvetica", 12)).grid(row=0, column=0, sticky="e", padx=10, pady=10)
+    global upc_entry
+    upc_entry = tk.Entry(input_frame, font=("Helvetica", 12))
+    upc_entry.grid(row=0, column=1, sticky="ew", padx=10, pady=10)
+    input_frame.columnconfigure(1, weight=1)
+
+    tk.Label(input_frame, text="Starting Serial #:", font=("Helvetica", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=10)
+    global serial_start_entry
+    serial_start_entry = tk.Entry(input_frame, font=("Helvetica", 12))
+    serial_start_entry.grid(row=1, column=1, sticky="ew", padx=10, pady=10)
+
+    tk.Label(input_frame, text="Labels per Roll (LPR):", font=("Helvetica", 12)).grid(row=2, column=0, sticky="e", padx=10, pady=10)
+    global lpr_entry
+    lpr_entry = tk.Entry(input_frame, font=("Helvetica", 12))
+    lpr_entry.grid(row=2, column=1, sticky="ew", padx=10, pady=10)
+
+    tk.Label(input_frame, text="Total Quantity:", font=("Helvetica", 12)).grid(row=3, column=0, sticky="e", padx=10, pady=10)
+    global total_qty_entry
+    total_qty_entry = tk.Entry(input_frame, font=("Helvetica", 12))
+    total_qty_entry.grid(row=3, column=1, sticky="ew", padx=10, pady=10)
+
+    tk.Label(input_frame, text="Qty/DB:", font=("Helvetica", 12)).grid(row=4, column=0, sticky="e", padx=10, pady=10)
+    global qty_db_entry
+    qty_db_entry = tk.Entry(input_frame, font=("Helvetica", 12))
+    qty_db_entry.grid(row=4, column=1, sticky="ew", padx=10, pady=10)
+
+    tk.Label(input_frame, text="Save Location:", font=("Helvetica", 12)).grid(row=5, column=0, sticky="e", padx=10, pady=10)
+    global save_location_entry
+    save_location_entry = tk.Entry(input_frame, font=("Helvetica", 12))
+    save_location_entry.grid(row=5, column=1, sticky="ew", padx=10, pady=10)
+    tk.Button(input_frame, text="Browse...", command=select_save_location, font=("Helvetica", 12), bg="#004B87", fg="white").grid(row=5, column=2, padx=10, pady=10)
+
+    button_frame = tk.Frame(tab)
+    button_frame.grid(row=6, column=0, columnspan=3, pady=20)
+
+    tk.Button(button_frame, text="Generate File", command=generate_file, font=("Helvetica", 12), bg="#4CAF50", fg="white").grid(row=0, column=0, padx=10)
+    tk.Button(button_frame, text="Clear", command=clear_fields, font=("Helvetica", 12), bg="#E60000", fg="white").grid(row=0, column=1, padx=10)
+    tk.Button(button_frame, text="Preview", command=preview_file, font=("Helvetica", 12), bg="#FFC107", fg="black").grid(row=0, column=2, padx=10)
+    tk.Button(button_frame, text="Verify", command=verify_epc, font=("Helvetica", 12), bg="#2196F3", fg="white").grid(row=0, column=3, padx=10)
+
+    global progress_bar
+    progress_bar = ttk.Progressbar(tab, orient="horizontal", length=400, mode="determinate")
+    progress_bar.grid(row=7, column=0, columnspan=3, pady=10, sticky="ew")
+
+    footer_frame = tk.Frame(tab, bg="#004B87")
+    footer_frame.grid(row=8, column=0, columnspan=3, sticky="ew")
+    tk.Label(footer_frame, text="Starport Technologies - Converting RFID into the Future", font=("Helvetica", 10), bg="#004B87", fg="white").pack(pady=10)
+
+def create_job_creator_tab(tab):
+    header_frame = tk.Frame(tab, bg="#004B87")
+    header_frame.grid(row=0, column=0, columnspan=3, sticky="ew")
+
+    tk.Label(header_frame, text="Job Creator", font=("Helvetica", 16, "bold"), bg="#004B87", fg="white").pack(pady=10)
+
+    input_frame = tk.Frame(tab)
+    input_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=10)
+
+    tk.Label(input_frame, text="Customer Name:", font=("Helvetica", 12)).grid(row=0, column=0, sticky="e", padx=10, pady=10)
+    global customer_var
+    customer_var = tk.StringVar()
+    global customer_menu
+    customer_menu = ttk.Combobox(input_frame, textvariable=customer_var, font=("Helvetica", 12), height=15)
+    customer_menu.grid(row=0, column=1, sticky="ew", padx=10, pady=10)
+    customer_menu.bind("<<ComboboxSelected>>", on_customer_select)
+
+    tk.Label(input_frame, text="Label Size:", font=("Helvetica", 12)).grid(row=1, column=0, sticky="e", padx=10, pady=10)
+    global label_size_var
+    label_size_var = tk.StringVar()
+    global label_size_menu
+    label_size_menu = ttk.Combobox(input_frame, textvariable=label_size_var, font=("Helvetica", 12), height=15)
+    label_size_menu.grid(row=1, column=1, sticky="ew", padx=10, pady=10)
+
+    tk.Label(input_frame, text="Ticket Number:", font=("Helvetica", 12)).grid(row=2, column=0, sticky="e", padx=10, pady=10)
+    global ticket_number_entry
+    ticket_number_entry = tk.Entry(input_frame, font=("Helvetica", 12))
+    ticket_number_entry.grid(row=2, column=1, sticky="ew", padx=10, pady=10)
+
+    tk.Label(input_frame, text="PO Number:", font=("Helvetica", 12)).grid(row=3, column=0, sticky="e", padx=10, pady=10)
+    global po_number_entry
+    po_number_entry = tk.Entry(input_frame, font=("Helvetica", 12))
+    po_number_entry.grid(row=3, column=1, sticky="ew", padx=10, pady=10)
+
+    tk.Label(input_frame, text="UPC:", font=("Helvetica", 12)).grid(row=4, column=0, sticky="e", padx=10, pady=10)
+    global upc_entry_job
+    upc_entry_job = tk.Entry(input_frame, font=("Helvetica", 12))
+    upc_entry_job.grid(row=4, column=1, sticky="ew", padx=10, pady=10)
+
+    button_frame = tk.Frame(tab)
+    button_frame.grid(row=5, column=0, columnspan=3, pady=20)
+
+    tk.Button(button_frame, text="Create Job Folder", command=create_job_folder, font=("Helvetica", 12), bg="#4CAF50", fg="white").grid(row=0, column=0, padx=10)
+    tk.Button(button_frame, text="Clear", command=clear_fields, font=("Helvetica", 12), bg="#E60000", fg="white").grid(row=0, column=1, padx=10)
+
+    footer_frame = tk.Frame(tab, bg="#004B87")
+    footer_frame.grid(row=6, column=0, columnspan=3, sticky="ew")
+    tk.Label(footer_frame, text="Starport Technologies - Converting RFID into the Future", font=("Helvetica", 10), bg="#004B87", fg="white").pack(pady=10)
+
+    tab.rowconfigure(1, weight=1)
+    tab.columnconfigure(0, weight=1)
+
+    populate_customer_dropdown()
+    
+# Main function to initialize the GUI
+def initialize_gui():
+    notebook = ttk.Notebook(root)
+
+    job_creator_tab = ttk.Frame(notebook)
+    database_generator_tab = ttk.Frame(notebook)
+
+    notebook.add(job_creator_tab, text="Job Creator")
+    notebook.add(database_generator_tab, text="Database Generator")
+
+    notebook.pack(expand=True, fill='both')
+
+    create_job_creator_tab(job_creator_tab)
+    create_database_generator_tab(database_generator_tab)
 
 root = tk.Tk()
-root.title("Database Generator")
+root.title("Job Creator and Database Generator")
 
 # Set icon path relative to script location
 icon_path = resource_path('download.png')
 root.iconphoto(False, tk.PhotoImage(file=icon_path))
 
-font_style = ("Helvetica", 12)
-padding = {'padx': 10, 'pady': 10}
+root.resizable(False, False)
 
-header_frame = tk.Frame(root, bg="#004B87")
-header_frame.grid(row=0, column=0, columnspan=3, sticky="ew")
+initialize_gui()
 
-tk.Label(header_frame, text="Database Generator", font=("Helvetica", 16, "bold"), bg="#004B87", fg="white").pack(pady=10)
-
-input_frame = tk.Frame(root)
-input_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=10)
-
-tk.Label(input_frame, text="UPC:", font=font_style).grid(row=0, column=0, sticky="e", **padding)
-upc_entry = tk.Entry(input_frame, font=font_style)
-upc_entry.grid(row=0, column=1, sticky="ew", **padding)
-input_frame.columnconfigure(1, weight=1)
-
-tk.Label(input_frame, text="Starting Serial #:", font=font_style).grid(row=1, column=0, sticky="e", **padding)
-serial_start_entry = tk.Entry(input_frame, font=font_style)
-serial_start_entry.grid(row=1, column=1, sticky="ew", **padding)
-
-tk.Label(input_frame, text="Labels per Roll (LPR):", font=font_style).grid(row=2, column=0, sticky="e", **padding)
-lpr_entry = tk.Entry(input_frame, font=font_style)
-lpr_entry.grid(row=2, column=1, sticky="ew", **padding)
-
-tk.Label(input_frame, text="Total Quantity:", font=font_style).grid(row=3, column=0, sticky="e", **padding)
-total_qty_entry = tk.Entry(input_frame, font=font_style)
-total_qty_entry.grid(row=3, column=1, sticky="ew", **padding)
-
-tk.Label(input_frame, text="Qty/DB:", font=font_style).grid(row=4, column=0, sticky="e", **padding)
-qty_db_entry = tk.Entry(input_frame, font=font_style)
-qty_db_entry.grid(row=4, column=1, sticky="ew", **padding)
-
-tk.Label(input_frame, text="Save Location:", font=font_style).grid(row=5, column=0, sticky="e", **padding)
-save_location_entry = tk.Entry(input_frame, font=font_style)
-save_location_entry.grid(row=5, column=1, sticky="ew", **padding)
-tk.Button(input_frame, text="Browse...", command=select_save_location, font=font_style, bg="#004B87", fg="white").grid(row=5, column=2, **padding)
-
-button_frame = tk.Frame(root)
-button_frame.grid(row=6, column=0, columnspan=3, pady=20)
-
-tk.Button(button_frame, text="Generate File", command=generate_file, font=font_style, bg="#4CAF50", fg="white").grid(row=0, column=0, padx=10)
-tk.Button(button_frame, text="Clear", command=clear_fields, font=font_style, bg="#E60000", fg="white").grid(row=0, column=1, padx=10)
-tk.Button(button_frame, text="Preview", command=preview_file, font=font_style, bg="#FFC107", fg="black").grid(row=0, column=2, padx=10)
-tk.Button(button_frame, text="Verify", command=verify_epc, font=font_style, bg="#2196F3", fg="white").grid(row=0, column=3, padx=10)
-
-progress_bar = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate")
-progress_bar.grid(row=7, column=0, columnspan=3, pady=10, sticky="ew")
-
-footer_frame = tk.Frame(root, bg="#004B87")
-footer_frame.grid(row=8, column=0, columnspan=3, sticky="ew")
-tk.Label(footer_frame, text="Starport Technologies - Converting RFID into the Future", font=("Helvetica", 10), bg="#004B87", fg="white").pack(pady=10)
-
-root.columnconfigure(1, weight=1)
 root.mainloop()

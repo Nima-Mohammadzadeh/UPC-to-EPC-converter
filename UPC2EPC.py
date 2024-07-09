@@ -1,15 +1,22 @@
+import shutil
+import os
+import datetime
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import pandas as pd
 import openpyxl
-import os
 import math
 import webbrowser
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 import sys
-import datetime
+
+# Define global paths
+base_path = r'Z:\3 Encoding and Printing Files\Customers Encoding Files'
+template_base_path = r'C:\Users\Jason\OneDrive\Documents\UPC2EPC Convertor\Templates'
+
+# Global variable to store the path of the created job folder
+job_data_folder_path = None
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -21,10 +28,25 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 def select_save_location():
-    folder_selected = filedialog.askdirectory()
+    global job_data_folder_path
+    folder_selected = job_data_folder_path if job_data_folder_path else filedialog.askdirectory()
     if folder_selected:
         save_location_entry.delete(0, tk.END)
         save_location_entry.insert(0, folder_selected)
+
+def select_template():
+    customer = customer_var.get().strip()
+    label_size = label_size_var.get().strip()
+    initial_dir = os.path.join(template_base_path, customer, label_size)
+    
+    if not os.path.exists(initial_dir):
+        messagebox.showerror("Directory Error", f"Directory does not exist: {initial_dir}")
+        return
+    
+    file_selected = filedialog.askopenfilename(initialdir=initial_dir, filetypes=[("BarTender Template Files", "*.btw")])
+    if file_selected:
+        template_entry.delete(0, tk.END)
+        template_entry.insert(0, file_selected)
 
 def dec_to_bin(value, length):
     return bin(int(value))[2:].zfill(length)
@@ -222,13 +244,12 @@ def verify_epc():
 def clear_fields():
     customer_menu.set('')
     label_size_menu.set('')
-    job_qty_entry.delete(0, tk.END)
     ticket_number_entry.delete(0, tk.END)
     po_number_entry.delete(0, tk.END)
     upc_entry_job.delete(0, tk.END)
 
 def populate_customer_dropdown():
-    customer_dir = r'Z:\3 Encoding and Printing Files\Customers Encoding Files'
+    customer_dir = base_path
     if os.path.exists(customer_dir):
         customers = os.listdir(customer_dir)
         customers = [customer for customer in customers if os.path.isdir(os.path.join(customer_dir, customer))]
@@ -239,7 +260,7 @@ def populate_customer_dropdown():
         messagebox.showerror("Directory Error", f"Customer directory not found: {customer_dir}")
 
 def update_label_size_dropdown(customer):
-    label_size_dir = os.path.join(r'Z:\3 Encoding and Printing Files\Customers Encoding Files', customer)
+    label_size_dir = os.path.join(base_path, customer)
     if os.path.exists(label_size_dir):
         label_sizes = os.listdir(label_size_dir)
         label_sizes = [size for size in label_sizes if os.path.isdir(os.path.join(label_size_dir, size))]
@@ -253,6 +274,7 @@ def on_customer_select(event):
     update_label_size_dropdown(selected_customer)
 
 def create_job_folder():
+    global job_data_folder_path
     customer = customer_var.get().strip()
     label_size = label_size_var.get().strip()
     ticket_number = ticket_number_entry.get().strip()
@@ -265,17 +287,24 @@ def create_job_folder():
 
     today_date = datetime.datetime.now().strftime("%m.%d.%y")
     folder_name = f"{today_date} - {po_number} - {ticket_number}"
-    folder_path = os.path.join(r'Z:\3 Encoding and Printing Files\Customers Encoding Files', customer, label_size, folder_name)
-    upc_folder_path = os.path.join(folder_path, upc)
+    job_folder_path = os.path.join(base_path, customer, label_size, folder_name)
+    upc_folder_path = os.path.join(job_folder_path, upc)
+    job_data_folder_path = os.path.join(upc_folder_path, "data")
 
     try:
         os.makedirs(upc_folder_path, exist_ok=True)
         os.makedirs(os.path.join(upc_folder_path, "print"), exist_ok=True)
-        os.makedirs(os.path.join(upc_folder_path, "data"), exist_ok=True)
+        os.makedirs(job_data_folder_path, exist_ok=True)
+        # Copy the selected template to the print folder and rename it to the UPC
+        template_path = template_entry.get().strip()
+        if os.path.exists(template_path):
+            shutil.copy(template_path, os.path.join(upc_folder_path, "print", f"{upc}.btw"))
+            print(f"Template copied to {os.path.join(upc_folder_path, 'print', f'{upc}.btw')}")
+        else:
+            messagebox.showerror("Template Error", f"Template not found at {template_path}")
         messagebox.showinfo("Success", f"Folder created successfully at: {upc_folder_path}")
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
-
 
 def create_database_generator_tab(tab):
     header_frame = tk.Frame(tab, bg="#004B87")
@@ -373,21 +402,27 @@ def create_job_creator_tab(tab):
     upc_entry_job = tk.Entry(input_frame, font=("Helvetica", 12))
     upc_entry_job.grid(row=4, column=1, sticky="ew", padx=10, pady=10)
 
+    tk.Label(input_frame, text="Template Path:", font=("Helvetica", 12)).grid(row=5, column=0, sticky="e", padx=10, pady=10)
+    global template_entry
+    template_entry = tk.Entry(input_frame, font=("Helvetica", 12))
+    template_entry.grid(row=5, column=1, sticky="ew", padx=10, pady=10)
+    tk.Button(input_frame, text="Browse...", command=select_template, font=("Helvetica", 12), bg="#004B87", fg="white").grid(row=5, column=2, padx=10, pady=10)
+
     button_frame = tk.Frame(tab)
-    button_frame.grid(row=5, column=0, columnspan=3, pady=20)
+    button_frame.grid(row=6, column=0, columnspan=3, pady=20)
 
     tk.Button(button_frame, text="Create Job Folder", command=create_job_folder, font=("Helvetica", 12), bg="#4CAF50", fg="white").grid(row=0, column=0, padx=10)
     tk.Button(button_frame, text="Clear", command=clear_fields, font=("Helvetica", 12), bg="#E60000", fg="white").grid(row=0, column=1, padx=10)
 
     footer_frame = tk.Frame(tab, bg="#004B87")
-    footer_frame.grid(row=6, column=0, columnspan=3, sticky="ew")
+    footer_frame.grid(row=7, column=0, columnspan=3, sticky="ew")
     tk.Label(footer_frame, text="Starport Technologies - Converting RFID into the Future", font=("Helvetica", 10), bg="#004B87", fg="white").pack(pady=10)
 
     tab.rowconfigure(1, weight=1)
     tab.columnconfigure(0, weight=1)
 
     populate_customer_dropdown()
-    
+
 # Main function to initialize the GUI
 def initialize_gui():
     notebook = ttk.Notebook(root)
@@ -412,6 +447,6 @@ root.iconphoto(False, tk.PhotoImage(file=icon_path))
 
 root.resizable(False, False)
 
-initialize_gui()
+initialize_gui()    
 
 root.mainloop()

@@ -3,9 +3,13 @@
 
 a = Analysis(
     ['UPC2EPC.py'],
-    pathex=[],
+    pathex=['C:\\Users\\Jason\\OneDrive\\Documents\\UPC2EPC Convertor'],
     binaries=[],
-    datas=[('download.png', '.')],
+    datas=[
+	('C:\\Users\\Jason\\OneDrive\\Documents\\UPC2EPC Convertor\\Roll Tracker v.3.xlsx', '.'),
+        ('C:\\Users\\Jason\\OneDrive\\Documents\\UPC2EPC Convertor\\Templates', 'Templates'),
+        ('C:\\Users\\Jason\\OneDrive\\Documents\\UPC2EPC Convertor\\download.png', '.')
+	],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -13,6 +17,8 @@ a = Analysis(
     excludes=[],
     noarchive=False,
     optimize=0,
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
 )
 pyz = PYZ(a.pure)
 

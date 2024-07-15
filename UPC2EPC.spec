@@ -3,22 +3,16 @@
 
 a = Analysis(
     ['UPC2EPC.py'],
-    pathex=['C:\\Users\\Jason\\OneDrive\\Documents\\UPC2EPC Convertor'],
+    pathex=[],
     binaries=[],
-    datas=[
-	('C:\\Users\\Jason\\OneDrive\\Documents\\UPC2EPC Convertor\\Roll Tracker v.3.xlsx', '.'),
-        ('C:\\Users\\Jason\\OneDrive\\Documents\\UPC2EPC Convertor\\Templates', 'Templates'),
-        ('C:\\Users\\Jason\\OneDrive\\Documents\\UPC2EPC Convertor\\download.png', '.')
-	],
-    hiddenimports=[],
+    datas=[('C:/Users/Jason/OneDrive/Documents/UPC2EPC Convertor/Templates', 'Templates'), ('download.png', '.'), ('Roll Tracker v.3.xlsx', '.'), ('temp_Roll_Tracker.xlsx', '.')],
+    hiddenimports=['openpyxl', 'selenium'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
     noarchive=False,
     optimize=0,
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
 )
 pyz = PYZ(a.pure)
 

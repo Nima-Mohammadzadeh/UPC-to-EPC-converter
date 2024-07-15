@@ -13,7 +13,7 @@ import sys
 
 # Define global paths
 base_path = r'Z:\3 Encoding and Printing Files\Customers Encoding Files'
-template_base_path = r'C:\Users\Jason\OneDrive\Documents\UPC2EPC Convertor\Templates'
+template_base_path = r'Z:\3 Encoding and Printing Files\Templates'
 
 # Global variable to store the path of the created job folder
 job_data_folder_path = None

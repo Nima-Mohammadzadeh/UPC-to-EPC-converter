@@ -4,11 +4,103 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Starport Tech Hub</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+    /* Reset default margin and padding */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+
+    } 
+
+    /* Style the navbar */
+
+    nav {
+        background-color: #333; 
+        padding: 10px 0;
+    }
+
+    nav ul {
+        list-style-type: none;
+        display: flex;
+        justify-content:center;
+
+    }
+
+    nav ul li {
+        margin: 0 15px;
+    }
+
+    nav ul li a {
+        text-decoration: none; /* Remove underline */
+        color: white; /* White text */
+        font-size: 18px;
+        padding: 5px 10px;
+        transition: background-color 0.3s ease;
+    }
+
+    /* Change background color on hover */
+    nav ul li a:hover {
+        background-color: #575757;
+        border-radius: 5px;
+    }
+
+    /* Add some padding to the sections so they're not hidden under the fixed navbar */
+    section {
+        padding: 60px 20px;
+    }
+</style>
 </head>
 <body>
-    <h1>Welcome to the Starport Portal</h1>
-    <p>This is the landing page.</p>
-    <p>You will find the UPC to EPC converter for database generation here.</p>
-    <p>You can also find currently running hot tickets.</p>
+    <!-- Navigation Bar -->
+     <nav>
+        <ul>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#database-generator">Database Generator</a></li>
+            <li><a href="#job-setup">Job Setup</a></li>
+            <li><a href="#running-tickets">Running Tickets</a></li>
+            <li><a href="#priorities">Priorities</a></li>
+            <li><a href="#epc-decoder">EPC Decoder</a></li>
+            <li><a href="#help">Help</a></li>
+        </ul>
+     </nav>
+
+     <!-- Sections of page -->
+    <section id="home">
+        <h1>Welcome to Home Page</h1>
+        <p>This is the landing page which will have summarized information ready at a glance.</p>
+    </section>
+
+    <section id="database-generator">
+        <h1>Database Generator</h1>
+        <p>This section is for generating databases.</p>
+    </section>
+
+    <section id="job-setup">
+        <h1>Job Setup</h1>
+        <p>This section is for setting up jobs.</p>
+    </section>
+
+    <section id="running-tickets">
+        <h1>Running Tickets</h1>
+        <p>This section is for viewing currently running tickets.</p>
+    </section>
+
+    <section id="priorities">
+        <h1>Priorities</h1>
+        <p>This section is for managing priorities.</p>
+    </section>
+
+    <section id="epc-decoder">
+        <h1>EPC Decoder</h1>
+        <p>This section is for decoding EPC values back to UPCs.</p>
+    </section>
+
+    <section id="help">
+        <h1>Help</h1>
+        <p>This section provides help and documentation.</p>
+    </section>
+
 </body>
 </html>

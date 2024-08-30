@@ -19,6 +19,21 @@
 
     </nav>
 
+    <h1>Serilization Tracker</h1>
+    <div id="serilization-tracker">
+        <h2>Current Serilization number:  <span id="current-serial">1000</span></h2>
+        <label for="label-quantity">Enter Number of labels:</label>
+        <input type="number" id="label-quantity" min="1">
+        <button id="generate-serials">Generate Serials</button>
+    </div>
+
+    <div id="serial-output">
+        <h3>Starting Serialization: <span id="start-serial"></span></h3>
+        <h3>Ending Serialization: <span id="end-serial"></span></h3>
+    </div>
+
+    <script src="app.js"></script>
+
     <form action="#">
         <label for="UPC">UPC</label>
         <input type="text" id="UPC" name="UPC"><br><br>
